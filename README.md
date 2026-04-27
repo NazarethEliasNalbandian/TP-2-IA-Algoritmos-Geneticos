@@ -1,1 +1,1 @@
-# TP-2-IA-Algoritmos-Gen-ticos
+# TP-2-IA-Algoritmos-Geneticos
