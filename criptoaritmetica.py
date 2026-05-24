@@ -17,8 +17,8 @@ LEADING_LETTERS = ["S", "U", "N", "P"]
 
 @dataclass
 class Config:
-    population_size: int = 3000
-    max_generations: int = 5000
+    population_size: int = 2000
+    max_generations: int = 1000
     crossover_probability: float = 0.90
     mutation_probability: float = 0.35
     tournament_size: int = 5
@@ -207,10 +207,10 @@ def ordered_crossover(parent1, parent2):
 # En cambio, intercambiamos dos posiciones.
 
 
-def swap_mutation(individual):
-    i, j = random.sample(range(len(individual)), 2)
-
-    individual[i], individual[j] = individual[j], individual[i]
+def swap_mutation(individual, swaps=3):
+    for _ in range(swaps):
+        i, j = random.sample(range(len(individual)), 2)
+        individual[i], individual[j] = individual[j], individual[i]
 
     return individual
 
@@ -336,11 +336,6 @@ def explain_solution(individual):
 
     return mapping, saturn, uranus, neptune, pluto, planets, total, is_valid
 
-
-# ============================================================
-# 9. Guardado de logs
-# ============================================================
-
 def save_logs(results, filename="logs_saturn_uranus_neptune_pluto_planets.csv"):
     rows = []
 
@@ -373,11 +368,6 @@ def save_logs(results, filename="logs_saturn_uranus_neptune_pluto_planets.csv"):
         writer.writeheader()
         writer.writerows(rows)
 
-
-# ============================================================
-# 10. Gráfico de comportamiento de aptitud
-# ============================================================
-
 def plot_best_run(best_result):
     try:
         import matplotlib.pyplot as plt
@@ -399,51 +389,370 @@ def plot_best_run(best_result):
     except ImportError:
         print("matplotlib no está instalado. Se omite el gráfico.")
 
+def plot_run(result, run_number, config, save_image=True):
+    try:
+        import matplotlib.pyplot as plt
 
-# ============================================================
-# 11. Ejecución de varias corridas
-# ============================================================
+        generations = [row["generation"] for row in result["log"]]
+        best_values = [row["best_generation_fitness"] for row in result["log"]]
+        avg_values = [row["avg_generation_fitness"] for row in result["log"]]
+        worst_values = [row["worst_generation_fitness"] for row in result["log"]]
 
-def main():
-    config = Config()
+        plt.figure(figsize=(10, 5))
+        plt.plot(generations, best_values, label="Mejor fitness de la generación")
+        plt.plot(generations, avg_values, label="Fitness promedio")
+        plt.plot(generations, worst_values, label="Peor fitness de la generación")
 
-    results = []
+        plt.xlabel("Generación")
+        plt.ylabel("Fitness")
+        plt.title(
+            f"Corrida {run_number} - Evolución de fitness\n"
+            f"Pob={config.population_size}, Mut={config.mutation_probability}, "
+            f"Cruza={config.crossover_probability}, Torneo={config.tournament_size}, "
+            f"Elitismo={config.elitism}"
+        )
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
 
-    for run in range(config.number_of_runs):
-        result = run_genetic_algorithm(config, seed=run)
-        results.append(result)
+        if save_image:
+            filename = f"grafico_corrida_{run_number}.png"
+            plt.savefig(filename, dpi=150)
+            print(f"Gráfico guardado en: {filename}")
 
+        plt.show()
+
+    except ImportError:
+        print("matplotlib no está instalado. Se omite el gráfico.")
+
+def print_run_configuration(run_number, config):
+    print("\n" + "-" * 70)
+    print(f"CONFIGURACIÓN DE LA CORRIDA {run_number}")
+    print("-" * 70)
+
+    print("Cambios en la función de aptitud y/o estructura del cromosoma:")
+    print("- Estructura del cromosoma: no cambia.")
+    print("- Función de aptitud: no cambia.")
+    print("- Se modifican parámetros de ejecución y operadores genéticos.")
+
+    print("\nEstructura del cromosoma:")
+    print("[S, A, T, U, R, N, E, P, L, O]")
+    print("Cada cromosoma es una permutación de los dígitos 0..9.")
+
+    print("\nFunción de aptitud:")
+    print("fitness = |SATURN + URANUS + NEPTUNE + PLUTO - PLANETS|")
+    print("          + penalización por ceros iniciales")
+    print("          + penalización por error de columnas")
+
+    print("\nMétodos y parámetros aplicados en operadores genéticos:")
+    print(f"- Tamaño de población: {config.population_size}")
+    print(f"- Cantidad máxima de generaciones: {config.max_generations}")
+    print(f"- Selección: torneo")
+    print(f"- Tamaño del torneo: {config.tournament_size}")
+    print(f"- Cruzamiento: Ordered Crossover")
+    print(f"- Probabilidad de cruzamiento: {config.crossover_probability}")
+    print(f"- Mutación: intercambio de dos posiciones")
+    print(f"- Probabilidad de mutación: {config.mutation_probability}")
+    print(f"- Elitismo: {config.elitism} individuos")
+    print("- Criterio de paro: fitness = 0 o máximo de generaciones")
+
+def print_run_result(run_number, result):
+    mapping, saturn, uranus, neptune, pluto, planets, total, is_valid = explain_solution(
+        result["best_individual"]
+    )
+
+    print("\n" + "=" * 70)
+    print(f"RESULTADO DE LA CORRIDA {run_number}")
+    print("=" * 70)
+
+    print(f"Seed utilizada: {result['seed']}")
+    print(f"Mejor fitness obtenido: {result['best_fitness']}")
+    print(f"Generación donde apareció el mejor individuo: {result['best_generation']}")
+    print(f"Mejor cromosoma: {result['best_individual']}")
+    print(f"Asignación obtenida: {mapping}")
+
+    print("\nInterpretación de la solución:")
+    print(f"SATURN  = {saturn}")
+    print(f"URANUS  = {uranus}")
+    print(f"NEPTUNE = {neptune}")
+    print(f"PLUTO   = {pluto}")
+    print(f"PLANETS = {planets}")
+
+    print("\nValidación:")
+    print(f"{saturn} + {uranus} + {neptune} + {pluto} = {total}")
+    print(f"Resultado esperado: {planets}")
+
+    if is_valid:
+        print("¿Resuelve el problema?: Sí. La igualdad se cumple correctamente.")
+    else:
+        difference = abs(total - planets)
+        print("¿Resuelve el problema?: No. La igualdad no se cumple.")
+        print(f"Diferencia absoluta entre suma y resultado: {difference}")
+
+def save_summary(results, configs, filename="resumen_corridas.csv"):
+    rows = []
+
+    for run_number, (result, config) in enumerate(zip(results, configs), start=1):
         mapping, saturn, uranus, neptune, pluto, planets, total, is_valid = explain_solution(
             result["best_individual"]
         )
 
-        print("=" * 70)
-        print(f"Corrida: {run}")
-        print(f"Mejor fitness: {result['best_fitness']}")
-        print(f"Generación del mejor individuo: {result['best_generation']}")
-        print(f"Cromosoma: {result['best_individual']}")
-        print(f"Asignación: {mapping}")
-        print(f"SATURN  = {saturn}")
-        print(f"URANUS  = {uranus}")
-        print(f"NEPTUNE = {neptune}")
-        print(f"PLUTO   = {pluto}")
-        print(f"PLANETS = {planets}")
-        print(f"Validación: {saturn} + {uranus} + {neptune} + {pluto} = {total}")
-        print(f"¿Solución válida?: {is_valid}")
+        rows.append({
+            "corrida": run_number,
+            "seed": result["seed"],
+            "population_size": config.population_size,
+            "max_generations": config.max_generations,
+            "crossover_probability": config.crossover_probability,
+            "mutation_probability": config.mutation_probability,
+            "tournament_size": config.tournament_size,
+            "elitism": config.elitism,
+            "best_fitness": result["best_fitness"],
+            "best_generation": result["best_generation"],
+            "best_individual": result["best_individual"],
+            "mapping": mapping,
+            "SATURN": saturn,
+            "URANUS": uranus,
+            "NEPTUNE": neptune,
+            "PLUTO": pluto,
+            "PLANETS": planets,
+            "total_addends": total,
+            "is_valid": is_valid
+        })
 
+    with open(filename, mode="w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(
+            file,
+            fieldnames=[
+                "corrida",
+                "seed",
+                "population_size",
+                "max_generations",
+                "crossover_probability",
+                "mutation_probability",
+                "tournament_size",
+                "elitism",
+                "best_fitness",
+                "best_generation",
+                "best_individual",
+                "mapping",
+                "SATURN",
+                "URANUS",
+                "NEPTUNE",
+                "PLUTO",
+                "PLANETS",
+                "total_addends",
+                "is_valid"
+            ]
+        )
+
+        writer.writeheader()
+        writer.writerows(rows)
+
+    print(f"\nResumen de corridas guardado en: {filename}")
+
+# ============================================================
+# Comparación de resultados en función de mutation_probability
+# ============================================================
+
+def show_results_by_mutation_probability(results, configs, save_image=True):
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        plt = None
+
+    comparison_rows = []
+
+    for run_number, (result, config) in enumerate(zip(results, configs), start=1):
+        mapping, saturn, uranus, neptune, pluto, planets, total, is_valid = explain_solution(
+            result["best_individual"]
+        )
+
+        comparison_rows.append({
+            "corrida": run_number,
+            "mutation_probability": config.mutation_probability,
+            "best_fitness": result["best_fitness"],
+            "best_generation": result["best_generation"],
+            "is_valid": is_valid
+        })
+
+    # Mostrar tabla en consola
+    print("\n" + "#" * 90)
+    print("RESULTADOS EN FUNCIÓN DE LA PROBABILIDAD DE MUTACIÓN")
+    print("#" * 90)
+
+    print(
+        f"{'Corrida':<10}"
+        f"{'Mutación':<15}"
+        f"{'Mejor fitness':<20}"
+        f"{'Generación mejor':<22}"
+        f"{'Resuelve':<10}"
+    )
+
+    print("-" * 90)
+
+    for row in comparison_rows:
+        print(
+            f"{row['corrida']:<10}"
+            f"{row['mutation_probability']:<15}"
+            f"{row['best_fitness']:<20}"
+            f"{row['best_generation']:<22}"
+            f"{'Sí' if row['is_valid'] else 'No':<10}"
+        )
+
+    # Guardar CSV comparativo
+    filename = "comparacion_mutation_probability.csv"
+
+    with open(filename, mode="w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(
+            file,
+            fieldnames=[
+                "corrida",
+                "mutation_probability",
+                "best_fitness",
+                "best_generation",
+                "is_valid"
+            ]
+        )
+
+        writer.writeheader()
+        writer.writerows(comparison_rows)
+
+    print(f"\nComparación guardada en: {filename}")
+
+    # Graficar comparación
+    if plt is None:
+        print("matplotlib no está instalado. Se omiten los gráficos comparativos.")
+        return
+
+    mutation_values = [row["mutation_probability"] for row in comparison_rows]
+    best_fitness_values = [row["best_fitness"] for row in comparison_rows]
+    best_generation_values = [row["best_generation"] for row in comparison_rows]
+
+    # Gráfico 1: mutation_probability vs best_fitness
+    plt.figure(figsize=(8, 5))
+    plt.plot(mutation_values, best_fitness_values, marker="o")
+    plt.xlabel("Probabilidad de mutación")
+    plt.ylabel("Mejor fitness obtenido")
+    plt.title("Mejor fitness en función de la probabilidad de mutación")
+    plt.grid(True)
+    plt.tight_layout()
+
+    if save_image:
+        plt.savefig("comparacion_mutacion_fitness.png", dpi=150)
+        print("Gráfico guardado en: comparacion_mutacion_fitness.png")
+
+    plt.show()
+
+    # Gráfico 2: mutation_probability vs best_generation
+    plt.figure(figsize=(8, 5))
+    plt.plot(mutation_values, best_generation_values, marker="o")
+    plt.xlabel("Probabilidad de mutación")
+    plt.ylabel("Generación del mejor individuo")
+    plt.title("Generación de convergencia en función de la probabilidad de mutación")
+    plt.grid(True)
+    plt.tight_layout()
+
+    if save_image:
+        plt.savefig("comparacion_mutacion_generacion.png", dpi=150)
+        print("Gráfico guardado en: comparacion_mutacion_generacion.png")
+
+    plt.show()
+
+def main():
+    # Cada configuración representa una corrida diferente.
+    # La estructura del cromosoma y la función de aptitud se mantienen iguales.
+    # Lo que cambia son los parámetros de los operadores y de la ejecución.
+
+    configs = [
+        Config(
+            population_size=500,
+            max_generations=100,
+            crossover_probability=0.90,
+            mutation_probability=0,
+            tournament_size=5,
+            elitism=10,
+            number_of_runs=1
+        ),
+        Config(
+            population_size=500,
+            max_generations=100,
+            crossover_probability=0.90,
+            mutation_probability=0.25,
+            tournament_size=5,
+            elitism=10,
+            number_of_runs=1
+        ),
+        Config(
+            population_size=500,
+            max_generations=100,
+            crossover_probability=0.90,
+            mutation_probability=0.50,
+            tournament_size=5,
+            elitism=10,
+            number_of_runs=1
+        ),
+        Config(
+            population_size=500,
+            max_generations=100,
+            crossover_probability=0.90,
+            mutation_probability=0.75,
+            tournament_size=5,
+            elitism=10,
+            number_of_runs=1
+        ),
+        Config(
+            population_size=500,
+            max_generations=100,
+            crossover_probability=0.90,
+            mutation_probability=1,
+            tournament_size=5,
+            elitism=10,
+            number_of_runs=1
+        )
+    ]
+
+    results = []
+
+    for run_number, config in enumerate(configs, start=1):
+        seed = run_number - 1
+
+        print_run_configuration(run_number, config)
+
+        result = run_genetic_algorithm(config, seed=seed)
+        results.append(result)
+
+        print_run_result(run_number, result)
+
+        # Gráfico de comportamiento general de la función de aptitud
+        # para esta corrida completa.
+        plot_run(result, run_number, config, save_image=True)
+
+    # Guardamos el log completo de todas las corridas.
+    save_logs(results, filename="logs_todas_las_corridas.csv")
+
+    # Guardamos un resumen compacto para la sección de resultados.
+    save_summary(results, configs, filename="resumen_corridas.csv")
+    
+    show_results_by_mutation_probability(results, configs, save_image=True)
+
+    # Mejor resultado global.
     best_result = min(results, key=lambda r: r["best_fitness"])
+    best_run_index = results.index(best_result)
+    best_config = configs[best_run_index]
 
     print("\n" + "#" * 70)
     print("MEJOR RESULTADO GLOBAL")
     print("#" * 70)
 
+    print(f"Mejor corrida: {best_run_index + 1}")
+    print(f"Seed: {best_result['seed']}")
+    print(f"Mejor fitness global: {best_result['best_fitness']}")
+    print(f"Generación del mejor individuo: {best_result['best_generation']}")
+
     mapping, saturn, uranus, neptune, pluto, planets, total, is_valid = explain_solution(
         best_result["best_individual"]
     )
 
-    print(f"Seed de la mejor corrida: {best_result['seed']}")
-    print(f"Mejor fitness global: {best_result['best_fitness']}")
-    print(f"Generación: {best_result['best_generation']}")
     print(f"Cromosoma: {best_result['best_individual']}")
     print(f"Asignación: {mapping}")
     print(f"SATURN  = {saturn}")
@@ -454,8 +763,13 @@ def main():
     print(f"Validación: {saturn} + {uranus} + {neptune} + {pluto} = {total}")
     print(f"¿Solución válida?: {is_valid}")
 
-    save_logs(results)
-    plot_best_run(best_result)
+    print("\nParámetros de la mejor corrida:")
+    print(f"- Tamaño de población: {best_config.population_size}")
+    print(f"- Generaciones máximas: {best_config.max_generations}")
+    print(f"- Probabilidad de cruzamiento: {best_config.crossover_probability}")
+    print(f"- Probabilidad de mutación: {best_config.mutation_probability}")
+    print(f"- Tamaño de torneo: {best_config.tournament_size}")
+    print(f"- Elitismo: {best_config.elitism}")
 
 
 main()
