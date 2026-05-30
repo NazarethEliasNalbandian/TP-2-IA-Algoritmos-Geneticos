@@ -17,13 +17,12 @@ LEADING_LETTERS = ["S", "U", "N", "P"]
 
 @dataclass
 class Config:
-    population_size: int = 2000
-    max_generations: int = 1000
-    crossover_probability: float = 0.90
-    mutation_probability: float = 0.35
-    tournament_size: int = 5
-    elitism: int = 10
-    number_of_runs: int = 3
+    population_size: int
+    max_generations: int
+    crossover_probability: float
+    mutation_probability: float
+    tournament_size: int
+    elitism: int
 
 
 # ============================================================
@@ -204,7 +203,8 @@ def ordered_crossover(parent1, parent2):
 # Como el cromosoma es una permutación, no cambiamos un dígito por otro
 # cualquiera porque podríamos repetir valores.
 #
-# En cambio, intercambiamos dos posiciones.
+# En cambio, intercambiamos dos posiciones. Cada aplicación de la mutación
+# realiza 3 intercambios (swaps=3) sobre el mismo individuo.
 
 
 def swap_mutation(individual, swaps=3):
@@ -451,7 +451,7 @@ def print_run_configuration(run_number, config):
     print(f"- Tamaño del torneo: {config.tournament_size}")
     print(f"- Cruzamiento: Ordered Crossover")
     print(f"- Probabilidad de cruzamiento: {config.crossover_probability}")
-    print(f"- Mutación: intercambio de dos posiciones")
+    print(f"- Mutación: intercambio de dos posiciones (3 intercambios por mutación)")
     print(f"- Probabilidad de mutación: {config.mutation_probability}")
     print(f"- Elitismo: {config.elitism} individuos")
     print("- Criterio de paro: fitness = 0 o máximo de generaciones")
@@ -670,8 +670,7 @@ def main():
             crossover_probability=0.90,
             mutation_probability=0,
             tournament_size=5,
-            elitism=10,
-            number_of_runs=1
+            elitism=10
         ),
         Config(
             population_size=500,
@@ -679,8 +678,7 @@ def main():
             crossover_probability=0.90,
             mutation_probability=0.25,
             tournament_size=5,
-            elitism=10,
-            number_of_runs=1
+            elitism=10
         ),
         Config(
             population_size=500,
@@ -688,8 +686,7 @@ def main():
             crossover_probability=0.90,
             mutation_probability=0.50,
             tournament_size=5,
-            elitism=10,
-            number_of_runs=1
+            elitism=10
         ),
         Config(
             population_size=500,
@@ -697,8 +694,7 @@ def main():
             crossover_probability=0.90,
             mutation_probability=0.75,
             tournament_size=5,
-            elitism=10,
-            number_of_runs=1
+            elitism=10
         ),
         Config(
             population_size=500,
@@ -706,8 +702,7 @@ def main():
             crossover_probability=0.90,
             mutation_probability=1,
             tournament_size=5,
-            elitism=10,
-            number_of_runs=1
+            elitism=10
         )
     ]
 
