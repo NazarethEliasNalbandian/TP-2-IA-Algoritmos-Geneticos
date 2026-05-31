@@ -1,0 +1,6 @@
+corrida,mutation_probability,best_fitness,best_generation,is_valid
+1,0,400310,6,False
+2,0.25,290000,6,False
+3,0.5,200099,5,False
+4,0.75,0,29,True
+5,1,200110,52,False
